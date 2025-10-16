@@ -7,6 +7,8 @@ import edu.trincoll.model.MembershipType;
 import edu.trincoll.repository.BookRepository;
 import edu.trincoll.repository.MemberRepository;
 import edu.trincoll.service.policy.CheckoutPolicyFactory;
+import edu.trincoll.service.policy.PremiumCheckoutPolicy;
+import edu.trincoll.service.policy.RegularCheckoutPolicy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -76,11 +78,12 @@ class LibraryServiceTest {
     @Test
     @DisplayName("Should checkout book successfully for regular member")
     void shouldCheckoutBookForRegularMember() {
-        // Arrange
         when(bookService.findByIsbn(availableBook.getIsbn()))
                 .thenReturn(availableBook);
         when(memberService.findByEmail(regularMember.getEmail()))
                 .thenReturn(regularMember);
+        when(checkoutPolicyFactory.getPolicyFor(MembershipType.REGULAR))
+                .thenReturn(new RegularCheckoutPolicy());
 
         // Act
         String result = libraryService.checkoutBook(availableBook.getIsbn(), regularMember.getEmail());
@@ -102,6 +105,8 @@ class LibraryServiceTest {
                 .thenReturn(availableBook);
         when(memberService.findByEmail(premiumMember.getEmail()))
                 .thenReturn(premiumMember);
+        when(checkoutPolicyFactory.getPolicyFor(MembershipType.PREMIUM))
+                .thenReturn(new PremiumCheckoutPolicy());
 
         // Act
         libraryService.checkoutBook(availableBook.getIsbn(), premiumMember.getEmail());
@@ -119,6 +124,8 @@ class LibraryServiceTest {
                 .thenReturn(availableBook);
         when(memberService.findByEmail(regularMember.getEmail()))
                 .thenReturn(regularMember);
+        when(checkoutPolicyFactory.getPolicyFor(MembershipType.REGULAR))
+                .thenReturn(new RegularCheckoutPolicy());
 
         // Act
         String result = libraryService.checkoutBook(availableBook.getIsbn(), regularMember.getEmail());

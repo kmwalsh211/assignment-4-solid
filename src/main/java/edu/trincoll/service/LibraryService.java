@@ -43,7 +43,7 @@ public class LibraryService {
         this.memberRepository = memberRepository;
     }
 
-    // TODO 1 (15 points): SRP Violation - This method has multiple responsibilities - KAYLA - DONE
+    // TODO 1 (15 points): SRP Violation - This method has multiple responsibilities - KAYLA: DONE
     // Extract book-specific operations to a separate BookService
     // Move member-specific operations to a separate MemberService
     public String checkoutBook(String isbn, String memberEmail) {
@@ -59,7 +59,7 @@ public class LibraryService {
         }
 
 
-        // TODO 2 (15 points): OCP Violation - This checkout limit logic violates Open-Closed Principle - KAYLA
+        // TODO 2 (15 points): OCP Violation - This checkout limit logic violates Open-Closed Principle - KAYLA: DONE
         // Create a CheckoutPolicy interface with different implementations for each membership type
         // Use Strategy pattern instead of if-else statements
         CheckoutPolicy policy = checkoutPolicyFactory.getPolicyFor(member.getMembershipType());
