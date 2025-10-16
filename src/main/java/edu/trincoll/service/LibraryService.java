@@ -6,6 +6,8 @@ import edu.trincoll.model.Member;
 import edu.trincoll.model.MembershipType;
 import edu.trincoll.repository.BookRepository;
 import edu.trincoll.repository.MemberRepository;
+import edu.trincoll.service.policy.CheckoutPolicy;
+import edu.trincoll.service.policy.CheckoutPolicyFactory;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -29,17 +31,19 @@ public class LibraryService {
 
     private final BookService bookService;
     private final MemberService memberService;
+    private final CheckoutPolicyFactory checkoutPolicyFactory;
     private final BookRepository bookRepository;
     private final MemberRepository memberRepository;
 
-    public LibraryService(BookService bookService, MemberService memberService, BookRepository bookRepository, MemberRepository memberRepository) {
+    public LibraryService(BookService bookService, MemberService memberService, CheckoutPolicyFactory checkoutPolicyFactory, BookRepository bookRepository, MemberRepository memberRepository) {
         this.bookService = bookService;
         this.memberService = memberService;
+        this.checkoutPolicyFactory = checkoutPolicyFactory;
         this.bookRepository = bookRepository;
         this.memberRepository = memberRepository;
     }
 
-    // TODO 1 (15 points): SRP Violation - This method has multiple responsibilities
+    // TODO 1 (15 points): SRP Violation - This method has multiple responsibilities - KAYLA - DONE
     // Extract book-specific operations to a separate BookService
     // Move member-specific operations to a separate MemberService
     public String checkoutBook(String isbn, String memberEmail) {
@@ -55,37 +59,22 @@ public class LibraryService {
         }
 
 
-
-        // TODO 2 (15 points): OCP Violation - This checkout limit logic violates Open-Closed Principle
+        // TODO 2 (15 points): OCP Violation - This checkout limit logic violates Open-Closed Principle - KAYLA
         // Create a CheckoutPolicy interface with different implementations for each membership type
         // Use Strategy pattern instead of if-else statements
-        int maxBooks;
-        int loanPeriodDays;
+        CheckoutPolicy policy = checkoutPolicyFactory.getPolicyFor(member.getMembershipType());
 
-        if (member.getMembershipType() == MembershipType.REGULAR) {
-            maxBooks = 3;
-            loanPeriodDays = 14;
-        } else if (member.getMembershipType() == MembershipType.PREMIUM) {
-            maxBooks = 10;
-            loanPeriodDays = 30;
-        } else if (member.getMembershipType() == MembershipType.STUDENT) {
-            maxBooks = 5;
-            loanPeriodDays = 21;
-        } else {
-            throw new IllegalStateException("Unknown membership type");
-        }
-
-        if (member.getBooksCheckedOut() >= maxBooks) {
+        if (!policy.canCheckout(member)) {
             return "Member has reached checkout limit";
         }
 
         // Update book status
-        bookService.checkoutBook(book, member, loanPeriodDays);
+        bookService.checkoutBook(book, member, policy.getLoanPeriodDays());
 
         // Update member
         memberService.incrementCheckoutCount(member);
 
-        // TODO 3 (10 points): SRP Violation - Notification logic should be separate
+        // TODO 3 (10 points): SRP Violation - Notification logic should be separate - KAYLA
         // Create a NotificationService interface with email implementation
         // This demonstrates DIP (depend on abstraction, not concrete email sending)
         System.out.println("Sending email to: " + member.getEmail());

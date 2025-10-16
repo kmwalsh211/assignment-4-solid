@@ -6,6 +6,7 @@ import edu.trincoll.model.Member;
 import edu.trincoll.model.MembershipType;
 import edu.trincoll.repository.BookRepository;
 import edu.trincoll.repository.MemberRepository;
+import edu.trincoll.service.policy.CheckoutPolicyFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -37,6 +38,9 @@ class LibraryServiceTest {
     @Mock
     private MemberService memberService;
 
+    @Mock
+    private CheckoutPolicyFactory checkoutPolicyFactory;
+
     private LibraryService libraryService;
 
     private Book availableBook;
@@ -46,7 +50,7 @@ class LibraryServiceTest {
 
     @BeforeEach
     void setUp() {
-        libraryService = new LibraryService(bookService, memberService, bookRepository, memberRepository);
+        libraryService = new LibraryService(bookService, memberService, checkoutPolicyFactory, bookRepository, memberRepository);
 
         availableBook = new Book("978-0-123456-78-9", "Clean Code", "Robert Martin",
                 LocalDate.of(2008, 8, 1));
