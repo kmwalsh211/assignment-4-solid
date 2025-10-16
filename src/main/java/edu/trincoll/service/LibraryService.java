@@ -27,10 +27,14 @@ import java.util.List;
 @Service
 public class LibraryService {
 
+    private final BookService bookService;
+    private final MemberService memberService;
     private final BookRepository bookRepository;
     private final MemberRepository memberRepository;
 
-    public LibraryService(BookRepository bookRepository, MemberRepository memberRepository) {
+    public LibraryService(BookService bookService, MemberService memberService, BookRepository bookRepository, MemberRepository memberRepository) {
+        this.bookService = bookService;
+        this.memberService = memberService;
         this.bookRepository = bookRepository;
         this.memberRepository = memberRepository;
     }
@@ -40,17 +44,17 @@ public class LibraryService {
     // Move member-specific operations to a separate MemberService
     public String checkoutBook(String isbn, String memberEmail) {
         // Find book
-        Book book = bookRepository.findByIsbn(isbn)
-                .orElseThrow(() -> new IllegalArgumentException("Book not found"));
+        Book book = bookService.findByIsbn(isbn);
 
         // Find member
-        Member member = memberRepository.findByEmail(memberEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+        Member member = memberService.findByEmail(memberEmail);
 
         // Check if book is available
         if (book.getStatus() != BookStatus.AVAILABLE) {
             return "Book is not available";
         }
+
+
 
         // TODO 2 (15 points): OCP Violation - This checkout limit logic violates Open-Closed Principle
         // Create a CheckoutPolicy interface with different implementations for each membership type
@@ -76,14 +80,10 @@ public class LibraryService {
         }
 
         // Update book status
-        book.setStatus(BookStatus.CHECKED_OUT);
-        book.setCheckedOutBy(member.getEmail());
-        book.setDueDate(LocalDate.now().plusDays(loanPeriodDays));
-        bookRepository.save(book);
+        bookService.checkoutBook(book, member, loanPeriodDays);
 
         // Update member
-        member.setBooksCheckedOut(member.getBooksCheckedOut() + 1);
-        memberRepository.save(member);
+        memberService.incrementCheckoutCount(member);
 
         // TODO 3 (10 points): SRP Violation - Notification logic should be separate
         // Create a NotificationService interface with email implementation
@@ -98,16 +98,14 @@ public class LibraryService {
     // TODO 4 (15 points): SRP Violation - Return book logic should be in BookService
     // Also contains duplicated notification logic (DRY violation)
     public String returnBook(String isbn) {
-        Book book = bookRepository.findByIsbn(isbn)
-                .orElseThrow(() -> new IllegalArgumentException("Book not found"));
+        Book book = bookService.findByIsbn(isbn);
 
         if (book.getStatus() != BookStatus.CHECKED_OUT) {
             return "Book is not checked out";
         }
 
         String memberEmail = book.getCheckedOutBy();
-        Member member = memberRepository.findByEmail(memberEmail)
-                .orElseThrow(() -> new IllegalArgumentException("Member not found"));
+        Member member = memberService.findByEmail(memberEmail);
 
         // TODO 5 (10 points): OCP & SRP Violation - Late fee calculation
         // Create a LateFeeCalculator interface with strategy implementations
@@ -126,14 +124,10 @@ public class LibraryService {
         }
 
         // Update book
-        book.setStatus(BookStatus.AVAILABLE);
-        book.setCheckedOutBy(null);
-        book.setDueDate(null);
-        bookRepository.save(book);
+        bookService.returnBook(book);
 
         // Update member
-        member.setBooksCheckedOut(member.getBooksCheckedOut() - 1);
-        memberRepository.save(member);
+        memberService.decrementCheckoutCount(member);
 
         // Duplicated notification code (should use NotificationService)
         System.out.println("Sending email to: " + member.getEmail());
