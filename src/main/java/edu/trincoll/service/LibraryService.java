@@ -7,6 +7,8 @@ import edu.trincoll.model.MembershipType;
 import edu.trincoll.repository.BookRepository;
 import edu.trincoll.repository.MemberRepository;
 import edu.trincoll.service.policy.CheckoutPolicy;
+import edu.trincoll.service.fee.LateFeeCalculator;
+import edu.trincoll.service.fee.LateFeeCalculatorFactory;
 import edu.trincoll.service.policy.CheckoutPolicyFactory;
 import org.springframework.stereotype.Service;
 
@@ -32,15 +34,17 @@ public class LibraryService {
     private final BookService bookService;
     private final MemberService memberService;
     private final CheckoutPolicyFactory checkoutPolicyFactory;
+    private final LateFeeCalculatorFactory lateFeeCalculatorFactory;
     private final BookRepository bookRepository;
     private final MemberRepository memberRepository;
 
-    public LibraryService(BookService bookService, MemberService memberService, CheckoutPolicyFactory checkoutPolicyFactory, BookRepository bookRepository, MemberRepository memberRepository) {
+    public LibraryService(BookService bookService, MemberService memberService, CheckoutPolicyFactory checkoutPolicyFactory, BookRepository bookRepository, MemberRepository memberRepository, LateFeeCalculatorFactory lateFeeCalculatorFactory) {
         this.bookService = bookService;
         this.memberService = memberService;
         this.checkoutPolicyFactory = checkoutPolicyFactory;
         this.bookRepository = bookRepository;
         this.memberRepository = memberRepository;
+        this.lateFeeCalculatorFactory = lateFeeCalculatorFactory;
     }
 
     // TODO 1 (15 points): SRP Violation - This method has multiple responsibilities - KAYLA: DONE
@@ -84,7 +88,7 @@ public class LibraryService {
         return "Book checked out successfully. Due date: " + book.getDueDate();
     }
 
-    // TODO 4 (15 points): SRP Violation - Return book logic should be in BookService
+    // TODO 4 (15 points): SRP Violation - Return book logic should be in BookService - KAYLA: DONE
     // Also contains duplicated notification logic (DRY violation)
     public String returnBook(String isbn) {
         Book book = bookService.findByIsbn(isbn);
@@ -96,20 +100,14 @@ public class LibraryService {
         String memberEmail = book.getCheckedOutBy();
         Member member = memberService.findByEmail(memberEmail);
 
-        // TODO 5 (10 points): OCP & SRP Violation - Late fee calculation
+        // TODO 5 (10 points): OCP & SRP Violation - Late fee calculation - AJ: DONE
         // Create a LateFeeCalculator interface with strategy implementations
         // Different membership types might have different fee structures
         double lateFee = 0.0;
         if (book.getDueDate().isBefore(LocalDate.now())) {
             long daysLate = LocalDate.now().toEpochDay() - book.getDueDate().toEpochDay();
-
-            if (member.getMembershipType() == MembershipType.REGULAR) {
-                lateFee = daysLate * 0.50;
-            } else if (member.getMembershipType() == MembershipType.PREMIUM) {
-                lateFee = 0.0; // Premium members don't pay late fees
-            } else if (member.getMembershipType() == MembershipType.STUDENT) {
-                lateFee = daysLate * 0.25;
-            }
+            LateFeeCalculator calculator = lateFeeCalculatorFactory.getCalculatorFor(member.getMembershipType());
+            lateFee = calculator.calculateLateFee(daysLate);
         }
 
         // Update book

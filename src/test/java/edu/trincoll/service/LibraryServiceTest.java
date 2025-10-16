@@ -6,6 +6,9 @@ import edu.trincoll.model.Member;
 import edu.trincoll.model.MembershipType;
 import edu.trincoll.repository.BookRepository;
 import edu.trincoll.repository.MemberRepository;
+import edu.trincoll.service.fee.LateFeeCalculatorFactory;
+import edu.trincoll.service.fee.PremiumLateFeeCalculator;
+import edu.trincoll.service.fee.RegularLateFeeCalculator;
 import edu.trincoll.service.policy.CheckoutPolicyFactory;
 import edu.trincoll.service.policy.PremiumCheckoutPolicy;
 import edu.trincoll.service.policy.RegularCheckoutPolicy;
@@ -43,6 +46,9 @@ class LibraryServiceTest {
     @Mock
     private CheckoutPolicyFactory checkoutPolicyFactory;
 
+    @Mock
+    private LateFeeCalculatorFactory lateFeeCalculatorFactory;
+
     private LibraryService libraryService;
 
     private Book availableBook;
@@ -52,7 +58,7 @@ class LibraryServiceTest {
 
     @BeforeEach
     void setUp() {
-        libraryService = new LibraryService(bookService, memberService, checkoutPolicyFactory, bookRepository, memberRepository);
+        libraryService = new LibraryService(bookService, memberService, checkoutPolicyFactory, bookRepository, memberRepository, lateFeeCalculatorFactory);
 
         availableBook = new Book("978-0-123456-78-9", "Clean Code", "Robert Martin",
                 LocalDate.of(2008, 8, 1));
@@ -205,6 +211,8 @@ class LibraryServiceTest {
                 .thenReturn(availableBook);
         when(memberService.findByEmail(regularMember.getEmail()))
                 .thenReturn(regularMember);
+        when(lateFeeCalculatorFactory.getCalculatorFor(MembershipType.REGULAR))
+                .thenReturn(new RegularLateFeeCalculator());
 
         regularMember.setBooksCheckedOut(1);
 
@@ -227,6 +235,8 @@ class LibraryServiceTest {
                 .thenReturn(availableBook);
         when(memberService.findByEmail(premiumMember.getEmail()))
                 .thenReturn(premiumMember);
+        when(lateFeeCalculatorFactory.getCalculatorFor(MembershipType.PREMIUM))
+                .thenReturn(new PremiumLateFeeCalculator());
 
         premiumMember.setBooksCheckedOut(1);
 
