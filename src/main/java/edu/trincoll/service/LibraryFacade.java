@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
  * - implementations, so I generated ideas using ChatGPT.
  * - "Provide some suggested tests for the AvailabilityReportGenerator class
  * - "and please explain what aspects of the code it covers."
+ * - Helped identify how to make tests match with the new implementations
+ * - Helped keep track of the changes made to the program to write the Refactoring write up.
  *
  * What We Learned:
  - Smaller, single-purpose services (SRP) made the codebase easier
