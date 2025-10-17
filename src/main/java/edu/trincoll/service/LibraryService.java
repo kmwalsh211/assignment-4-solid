@@ -10,6 +10,7 @@ import edu.trincoll.service.policy.CheckoutPolicy;
 import edu.trincoll.service.fee.LateFeeCalculator;
 import edu.trincoll.service.fee.LateFeeCalculatorFactory;
 import edu.trincoll.service.policy.CheckoutPolicyFactory;
+import edu.trincoll.service.notification.NotificationService;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -37,14 +38,16 @@ public class LibraryService {
     private final LateFeeCalculatorFactory lateFeeCalculatorFactory;
     private final BookRepository bookRepository;
     private final MemberRepository memberRepository;
+    private final NotificationService notificationService;
 
-    public LibraryService(BookService bookService, MemberService memberService, CheckoutPolicyFactory checkoutPolicyFactory, BookRepository bookRepository, MemberRepository memberRepository, LateFeeCalculatorFactory lateFeeCalculatorFactory) {
+    public LibraryService(BookService bookService, MemberService memberService, CheckoutPolicyFactory checkoutPolicyFactory, BookRepository bookRepository, MemberRepository memberRepository, LateFeeCalculatorFactory lateFeeCalculatorFactory, NotificationService notificationService) {
         this.bookService = bookService;
         this.memberService = memberService;
         this.checkoutPolicyFactory = checkoutPolicyFactory;
         this.bookRepository = bookRepository;
         this.memberRepository = memberRepository;
         this.lateFeeCalculatorFactory = lateFeeCalculatorFactory;
+        this.notificationService = notificationService;
     }
 
     // TODO 1 (15 points): SRP Violation - This method has multiple responsibilities - KAYLA: DONE
@@ -78,12 +81,10 @@ public class LibraryService {
         // Update member
         memberService.incrementCheckoutCount(member);
 
-        // TODO 3 (10 points): SRP Violation - Notification logic should be separate - KAYLA
+        // TODO 3 (10 points): SRP Violation - Notification logic should be separate - KAYLA: DONE
         // Create a NotificationService interface with email implementation
         // This demonstrates DIP (depend on abstraction, not concrete email sending)
-        System.out.println("Sending email to: " + member.getEmail());
-        System.out.println("Subject: Book checked out");
-        System.out.println("Message: You have checked out " + book.getTitle());
+        notificationService.sendCheckoutNotification(member, book, book.getDueDate());
 
         return "Book checked out successfully. Due date: " + book.getDueDate();
     }
@@ -117,9 +118,7 @@ public class LibraryService {
         memberService.decrementCheckoutCount(member);
 
         // Duplicated notification code (should use NotificationService)
-        System.out.println("Sending email to: " + member.getEmail());
-        System.out.println("Subject: Book returned");
-        System.out.println("Message: You have returned " + book.getTitle());
+        notificationService.sendReturnNotification(member, book, lateFee);
 
         if (lateFee > 0) {
             return "Book returned. Late fee: $" + String.format("%.2f", lateFee);

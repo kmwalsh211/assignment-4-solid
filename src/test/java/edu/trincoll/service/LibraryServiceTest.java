@@ -9,6 +9,7 @@ import edu.trincoll.repository.MemberRepository;
 import edu.trincoll.service.fee.LateFeeCalculatorFactory;
 import edu.trincoll.service.fee.PremiumLateFeeCalculator;
 import edu.trincoll.service.fee.RegularLateFeeCalculator;
+import edu.trincoll.service.notification.NotificationService;
 import edu.trincoll.service.policy.CheckoutPolicyFactory;
 import edu.trincoll.service.policy.PremiumCheckoutPolicy;
 import edu.trincoll.service.policy.RegularCheckoutPolicy;
@@ -49,6 +50,9 @@ class LibraryServiceTest {
     @Mock
     private LateFeeCalculatorFactory lateFeeCalculatorFactory;
 
+    @Mock
+    private NotificationService notificationService;
+
     private LibraryService libraryService;
 
     private Book availableBook;
@@ -58,7 +62,7 @@ class LibraryServiceTest {
 
     @BeforeEach
     void setUp() {
-        libraryService = new LibraryService(bookService, memberService, checkoutPolicyFactory, bookRepository, memberRepository, lateFeeCalculatorFactory);
+        libraryService = new LibraryService(bookService, memberService, checkoutPolicyFactory, bookRepository, memberRepository, lateFeeCalculatorFactory, notificationService);
 
         availableBook = new Book("978-0-123456-78-9", "Clean Code", "Robert Martin",
                 LocalDate.of(2008, 8, 1));
@@ -84,6 +88,12 @@ class LibraryServiceTest {
     @Test
     @DisplayName("Should checkout book successfully for regular member")
     void shouldCheckoutBookForRegularMember() {
+        doAnswer(invocation -> {
+            Book b = invocation.getArgument(0);
+            b.setDueDate(LocalDate.now().plusDays(14));
+            return null;
+        }).when(bookService).checkoutBook(any(Book.class), any(Member.class), anyInt());
+
         when(bookService.findByIsbn(availableBook.getIsbn()))
                 .thenReturn(availableBook);
         when(memberService.findByEmail(regularMember.getEmail()))
@@ -101,6 +111,7 @@ class LibraryServiceTest {
         // Verify that the service methods were called with the correct arguments
         verify(bookService).checkoutBook(eq(availableBook), eq(regularMember), eq(14));
         verify(memberService).incrementCheckoutCount(eq(regularMember));
+        verify(notificationService).sendCheckoutNotification(eq(regularMember), eq(availableBook), any(LocalDate.class));
     }
 
     @Test
@@ -197,6 +208,7 @@ class LibraryServiceTest {
         assertThat(result).isEqualTo("Book returned successfully");
         verify(bookService).returnBook(eq(availableBook));
         verify(memberService).decrementCheckoutCount(eq(regularMember));
+        verify(notificationService).sendReturnNotification(eq(regularMember), eq(availableBook), eq(0.0));
     }
 
     @Test
@@ -221,6 +233,7 @@ class LibraryServiceTest {
 
         // Assert
         assertThat(result).contains("Late fee: $2.50"); // 5 days * $0.50
+        verify(notificationService).sendReturnNotification(eq(regularMember), eq(availableBook), eq(2.5));
     }
 
     @Test
